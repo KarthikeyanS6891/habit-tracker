@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(brew services *)",
+      "Bash(docker run *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5001/api/health)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(git config *)"
+    ]
+  }
+}
