@@ -4,6 +4,7 @@ import StatsCard from '../components/StatsCard.jsx';
 import ProgressChart from '../components/ProgressChart.jsx';
 import HabitCard from '../components/HabitCard.jsx';
 import HabitForm from '../components/HabitForm.jsx';
+import MotivationBanner from '../components/MotivationBanner.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import * as habitsApi from '../api/habits.js';
 import toast from 'react-hot-toast';
@@ -86,6 +87,8 @@ export default function Dashboard() {
           + New habit
         </button>
       </header>
+
+      <MotivationBanner pending={totals.habits - totals.completedToday} total={totals.habits} />
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatsCard label="Today" value={`${totals.completedToday}/${totals.habits}`} icon={CheckCircle2} />

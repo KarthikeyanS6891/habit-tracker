@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Award, Download, Upload } from 'lucide-react';
+import { Award, Bell, BellOff, Download, Upload } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import * as habitsApi from '../api/habits.js';
+import { DEFAULT_REMINDER_HOURS } from '../utils/motivation.js';
 
 const BADGE_LABELS = {
   'first-step': 'First Step',
@@ -13,10 +14,20 @@ const BADGE_LABELS = {
   collector: 'Habit Collector',
 };
 
+const HOUR_LABEL = (h) => {
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hr = ((h + 11) % 12) + 1;
+  return `${hr} ${ampm}`;
+};
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => h);
+
 export default function Profile() {
   const { user, setUser } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [progress, setProgress] = useState(null);
+  const [notifEnabled, setNotifEnabled] = useState(user?.notificationsEnabled !== false);
+  const [hours, setHours] = useState(user?.reminderHours?.length ? user.reminderHours : DEFAULT_REMINDER_HOURS);
 
   useEffect(() => {
     habitsApi.getProgress().then(setProgress).catch(() => {});
@@ -32,6 +43,34 @@ export default function Profile() {
     }
   };
 
+  const toggleNotifications = async () => {
+    const next = !notifEnabled;
+    setNotifEnabled(next);
+    try {
+      const updated = await habitsApi.updateProfile({ notificationsEnabled: next });
+      setUser((cur) => ({ ...cur, ...updated }));
+      if (next && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      toast.success(next ? 'Reminders on' : 'Reminders off');
+    } catch {
+      setNotifEnabled(!next);
+      toast.error('Could not update');
+    }
+  };
+
+  const toggleHour = async (h) => {
+    const next = hours.includes(h) ? hours.filter((x) => x !== h) : [...hours, h].sort((a, b) => a - b);
+    if (next.length === 0) return; // need at least one
+    setHours(next);
+    try {
+      const updated = await habitsApi.updateProfile({ reminderHours: next });
+      setUser((cur) => ({ ...cur, ...updated }));
+    } catch {
+      toast.error('Could not update reminder times');
+    }
+  };
+
   const exportData = async () => {
     const habits = await habitsApi.listHabits();
     const blob = new Blob([JSON.stringify({ user, habits }, null, 2)], { type: 'application/json' });
@@ -43,9 +82,7 @@ export default function Profile() {
     URL.revokeObjectURL(url);
   };
 
-  const pct = progress
-    ? Math.round((progress.pointsIntoLevel / progress.pointsForNext) * 100)
-    : 0;
+  const pct = progress ? Math.round((progress.pointsIntoLevel / progress.pointsForNext) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -74,6 +111,52 @@ export default function Profile() {
         <p className="text-xs text-slate-500 mt-2">
           {progress ? `${progress.pointsIntoLevel} / ${progress.pointsForNext} pts to next level` : ''}
         </p>
+      </section>
+
+      <section className="card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            {notifEnabled ? <Bell className="text-brand-600" /> : <BellOff className="text-slate-400" />}
+            <h2 className="font-semibold">Reminders</h2>
+          </div>
+          <button
+            onClick={toggleNotifications}
+            role="switch"
+            aria-checked={notifEnabled}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+              notifEnabled ? 'bg-brand-600' : 'bg-slate-300 dark:bg-slate-700'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                notifEnabled ? 'translate-x-5' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </div>
+        <p className="text-xs text-slate-500 mb-3">
+          Get a motivational nudge if any habits are still pending at these hours.
+        </p>
+        {notifEnabled && (
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            {HOUR_OPTIONS.map((h) => {
+              const on = hours.includes(h);
+              return (
+                <button
+                  key={h}
+                  onClick={() => toggleHour(h)}
+                  className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition ${
+                    on
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-transparent text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-500'
+                  }`}
+                >
+                  {HOUR_LABEL(h)}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <section className="card p-5">

@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
     level: { type: Number, default: 1 },
     badges: [{ type: String }],
     theme: { type: String, enum: ['light', 'dark'], default: 'light' },
+    notificationsEnabled: { type: Boolean, default: true },
+    reminderHours: { type: [Number], default: [9, 13, 17, 21] },
   },
   { timestamps: true }
 );

@@ -9,6 +9,8 @@ const sanitize = (u) => ({
   level: u.level,
   badges: u.badges,
   theme: u.theme,
+  notificationsEnabled: u.notificationsEnabled,
+  reminderHours: u.reminderHours,
   createdAt: u.createdAt,
 });
 

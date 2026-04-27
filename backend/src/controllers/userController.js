@@ -1,23 +1,34 @@
 import User from '../models/User.js';
 import { computeLevel } from '../utils/rewards.js';
 
+const sanitize = (u) => ({
+  id: u._id,
+  name: u.name,
+  email: u.email,
+  points: u.points,
+  level: u.level,
+  badges: u.badges,
+  theme: u.theme,
+  notificationsEnabled: u.notificationsEnabled,
+  reminderHours: u.reminderHours,
+});
+
 export const updateMe = async (req, res) => {
-  const { name, theme } = req.body;
+  const { name, theme, notificationsEnabled, reminderHours } = req.body;
   const user = await User.findById(req.user._id);
-  if (name) user.name = name;
+
+  if (typeof name === 'string' && name.trim()) user.name = name.trim();
   if (theme && ['light', 'dark'].includes(theme)) user.theme = theme;
+  if (typeof notificationsEnabled === 'boolean') user.notificationsEnabled = notificationsEnabled;
+  if (Array.isArray(reminderHours)) {
+    const cleaned = [...new Set(reminderHours.map(Number))]
+      .filter((h) => Number.isInteger(h) && h >= 0 && h <= 23)
+      .sort((a, b) => a - b);
+    if (cleaned.length) user.reminderHours = cleaned;
+  }
+
   await user.save();
-  res.json({
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      points: user.points,
-      level: user.level,
-      badges: user.badges,
-      theme: user.theme,
-    },
-  });
+  res.json({ user: sanitize(user) });
 };
 
 export const getProgress = async (req, res) => {
